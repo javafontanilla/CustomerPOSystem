@@ -119,6 +119,8 @@
             $('#skuId').val('');
             $('#skuModalTitle').text('Add SKU');
             $('#submitBtn').text('Save');
+              $('#imagePreview').attr('src', '');
+              $('#imagePreview').hide();
         }
 
        
@@ -149,6 +151,7 @@
                    $('#imagePreview').attr('src', e.target.result).show();
                };
                reader.readAsDataURL(this.files[0]);
+                  $('#imagePreview').show();
            });
           $('#skuForm').submit(function (e) {
             e.preventDefault();
