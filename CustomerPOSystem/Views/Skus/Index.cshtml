@@ -121,6 +121,7 @@
             $('#submitBtn').text('Save');
               $('#imagePreview').attr('src', '');
               $('#imagePreview').hide();
+              $('#skuIsActive').attr('disabled', true);
         }
 
        
@@ -137,7 +138,7 @@
            
             var isActive = $(this).data('isactive') === 'True' ? true : false;
             $('#skuIsActive').prop('checked', isActive);
-
+               $('#skuIsActive').attr('disabled', false);
              var imagePath = $(this).data('image');
              if (imagePath) {
                  $('#imagePreview').attr('src', imagePath).show(); 

@@ -123,28 +123,35 @@
 
 @section Scripts {
     <script>
-                let map;
-        let marker;
+
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDxyU_TgdFriQCQNKZBRi8nyPO95J4cqIE&callback=loadMapScript&v=weekly&t=${new Date().getTime()}`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+
+        let map, marker, geocoder;
+        const DEFAULT_LAT = 14.6761;
+        const DEFAULT_LNG = 121.2437;
 
         function loadMapScript() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        initMap(lat, lng);
-                    },
-                    (error) => {
-                        console.warn("Geolocation failed, using Quezon City as fallback.");
-                        initMap(14.6760, 121.0437); 
-                    }
-                );
-            } else {
-                initMap(14.6760, 121.0437); 
-            }
-        }
+              if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                          const lat = position.coords.latitude;
+                          const lng = position.coords.longitude;
+                          initMap(lat, lng);
+                      },
+                      () => {
+                          initMap(DEFAULT_LAT, DEFAULT_LNG);
+                      }
+                  );
+              } else {
+                  initMap(DEFAULT_LAT, DEFAULT_LNG);
+              }
+          }
 
-        function initMap(lat = 14.6760, lng = 121.0437) {
+        function initMap(lat = DEFAULT_LAT, lng = DEFAULT_LNG) {
             const initialPosition = { lat: parseFloat(lat), lng: parseFloat(lng) };
 
             map = new google.maps.Map(document.getElementById("map"), {
@@ -158,31 +165,53 @@
                 draggable: true,
             });
 
-            marker.addListener("dragend", function () {
+            geocoder = new google.maps.Geocoder();
+            debugger;
+            updateLatLngFields(lat, lng);
+            getCityAddress(initialPosition);
+            marker.addListener("dragend", () => {
                 const pos = marker.getPosition();
-                document.getElementById("customerLat").value = pos.lat().toFixed(6);
-                document.getElementById("customerLong").value = pos.lng().toFixed(6);
+                updateLatLngFields(pos.lat(), pos.lng());
+                getCityAddress(pos);
             });
 
-            map.addListener("click", function (e) {
+            map.addListener("click", (e) => {
                 marker.setPosition(e.latLng);
-                document.getElementById("customerLat").value = e.latLng.lat().toFixed(6);
-                document.getElementById("customerLong").value = e.latLng.lng().toFixed(6);
+                updateLatLngFields(e.latLng.lat(), e.latLng.lng());
+                getCityAddress(e.latLng);
             });
-
-            document.getElementById("customerLat").value = initialPosition.lat.toFixed(6);
-            document.getElementById("customerLong").value = initialPosition.lng.toFixed(6);
         }
 
+        function updateLatLngFields(lat, lng) {
+            $('#customerLat').val(lat.toFixed(6));
+            $('#customerLong').val(lng.toFixed(6));
+        }
+
+        function getCityAddress(latlng) {
+            debugger;
+            geocoder.geocode({ location: latlng }, function (results, status) {
+                if (status === "OK") {
+                    if (results[0]) {
+                        const addressComponents = results[0].address_components;
+                        const cityComponent = addressComponents.find(comp =>
+                            comp.types.includes("locality") || comp.types.includes("administrative_area_level_2")
+                        );
+                        if (cityComponent) {
+                            $('#customerCity').val(cityComponent.long_name);
+                        }
+                    }
+                } 
+            });
+        }
 
         function clearModal() {
-            $('#customerForm')[0].reset();
+            $('#customerFirstName').val('');
+            $('#customerLastName').val('');
+            $('#customerMobileNumber').val('');
             $('#customerId').val('');
             $('#modalTitle').text('Add Customer');
             $('#submitBtn').text('Save');
-            $('#customerLong').val(14.6760);
-            $('#customerLat').val(121.0437);
-          
+            $('#customerIsActive').attr('disabled', true);
         }
 
             document.addEventListener('DOMContentLoaded', function () {
@@ -227,7 +256,7 @@
 
             var isActive = $(this).data('isactive') === 'True' ? true : false;
             $('#customerIsActive').prop('checked', isActive);
-
+             $('#customerIsActive').attr('disabled', false);
         const lat = parseFloat($(this).data('lat'));
         const lng = parseFloat($(this).data('long'));
 
@@ -281,4 +310,4 @@
 
     </script>
 }
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDxyU_TgdFriQCQNKZBRi8nyPO95J4cqIE&callback=loadMapScript" async defer></script>
+ 
