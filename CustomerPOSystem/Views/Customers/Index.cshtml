@@ -1,0 +1,283 @@
+﻿@model IEnumerable<CustomerPOSystem.Models.Customer>
+
+@{
+    ViewData["Title"] = "Customer List";
+}
+
+<h2>Customer List</h2>
+
+<p>
+    <a href="#" data-bs-toggle="modal" data-bs-target="#customerModal" onclick="clearModal()">Create New Customer</a>
+</p>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Full Name</th>
+            <th>Mobile</th>
+            <th>City</th>
+            <th>Coordinates</th>
+            <th>Active</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var customer in Model)
+        {
+            <tr>
+                <td>@($"{customer.FirstName} {customer.LastName}")</td>
+                <td>@customer.MobileNumber</td>
+                <td>@customer.City</td>
+                <td>@($"{customer.Long}, {customer.Lat}")</td>
+                <td>
+                    <input type="checkbox" class="form-check-input" disabled @(customer.IsActive ? "checked" : "") />
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-warning edit-btn"
+                            data-id="@customer.Id"
+                            data-firstname="@customer.FirstName"
+                            data-lastname="@customer.LastName"
+                            data-mobile="@customer.MobileNumber"
+                            data-city="@customer.City"
+                            data-long="@customer.Long"
+                            data-lat="@customer.Lat"
+                            data-isactive="@customer.IsActive"
+                            data-bs-toggle="modal"
+                            data-bs-target="#customerModal">
+                        Edit
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Modal for Create/Edit Customer -->
+<div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <form id="customerForm">
+            <input type="hidden" name="Id" id="customerId" />
+
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Add Customer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Left Column: Form Fields -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label>First Name</label>
+                                <input type="text" name="FirstName" id="customerFirstName" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label>Last Name</label>
+                                <input type="text" name="LastName" id="customerLastName" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label>Mobile Number</label>
+                                <input type="text"
+                                       name="MobileNumber"
+                                       id="customerMobileNumber"
+                                       class="form-control"
+                                       inputmode="numeric"
+                                       maxlength="10"
+                                       required />
+                            </div>
+                            <div class="mb-3">
+                                <label>City</label>
+                                <input type="text" name="City" id="customerCity" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label>Longitude</label>
+                                <input type="text" name="Long" id="customerLong" class="form-control" readonly required />
+                            </div>
+                            <div class="mb-3">
+                                <label>Latitude</label>
+                                <input type="text" name="Lat" id="customerLat" class="form-control" readonly required />
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" name="IsActive" checked id="customerIsActive" class="form-check-input" />
+                                <label class="form-check-label" for="customerIsActive">Is Active</label>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Google Map -->
+                        <div class="col-md-6">
+                            <label class="form-label">Select Location</label>
+                            <div id="map" style="height: 400px; border: 1px solid #ccc;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Save</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+                let map;
+        let marker;
+
+        function loadMapScript() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        initMap(lat, lng);
+                    },
+                    (error) => {
+                        console.warn("Geolocation failed, using Quezon City as fallback.");
+                        initMap(14.6760, 121.0437); 
+                    }
+                );
+            } else {
+                initMap(14.6760, 121.0437); 
+            }
+        }
+
+        function initMap(lat = 14.6760, lng = 121.0437) {
+            const initialPosition = { lat: parseFloat(lat), lng: parseFloat(lng) };
+
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: initialPosition,
+                zoom: 14,
+            });
+
+            marker = new google.maps.Marker({
+                position: initialPosition,
+                map: map,
+                draggable: true,
+            });
+
+            marker.addListener("dragend", function () {
+                const pos = marker.getPosition();
+                document.getElementById("customerLat").value = pos.lat().toFixed(6);
+                document.getElementById("customerLong").value = pos.lng().toFixed(6);
+            });
+
+            map.addListener("click", function (e) {
+                marker.setPosition(e.latLng);
+                document.getElementById("customerLat").value = e.latLng.lat().toFixed(6);
+                document.getElementById("customerLong").value = e.latLng.lng().toFixed(6);
+            });
+
+            document.getElementById("customerLat").value = initialPosition.lat.toFixed(6);
+            document.getElementById("customerLong").value = initialPosition.lng.toFixed(6);
+        }
+
+
+        function clearModal() {
+            $('#customerForm')[0].reset();
+            $('#customerId').val('');
+            $('#modalTitle').text('Add Customer');
+            $('#submitBtn').text('Save');
+            $('#customerLong').val(14.6760);
+            $('#customerLat').val(121.0437);
+        }
+
+            document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('customerMobileNumber');
+
+            input.addEventListener('input', function () {
+                let value = this.value;
+
+                value = value.replace(/\D/g, '');
+
+                if (value.startsWith('0')) {
+                    value = value.substring(1);
+                }
+
+                if (value.length > 10) {
+                    value = value.slice(0, 10);
+                }
+
+                this.value = value;
+            });
+
+            input.addEventListener('paste', function (e) {
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                if (/^0/.test(paste)) {
+                    e.preventDefault();
+                    alert('Mobile number cannot start with 0.');
+                }
+            });
+        });
+
+        $('.edit-btn').click(function () {
+            $('#modalTitle').text('Edit Customer');
+            $('#submitBtn').text('Update');
+
+            $('#customerId').val($(this).data('id'));
+            $('#customerFirstName').val($(this).data('firstname'));
+            $('#customerLastName').val($(this).data('lastname'));
+            $('#customerMobileNumber').val('0' + $(this).data('mobile'));
+            $('#customerCity').val($(this).data('city'));
+            $('#customerLong').val($(this).data('long'));
+            $('#customerLat').val($(this).data('lat'));
+
+            var isActive = $(this).data('isactive') === 'True' ? true : false;
+            $('#customerIsActive').prop('checked', isActive);
+
+        const lat = parseFloat($(this).data('lat'));
+        const lng = parseFloat($(this).data('long'));
+
+        setTimeout(function () {
+            initMap(lat, lng);
+        }, 500);
+        });
+
+        $('#customerForm').submit(function (e) {
+            e.preventDefault(); 
+
+            var customerId = $('#customerId').val();
+
+            var formData = {
+                firstName: $('#customerFirstName').val(),
+                lastName: $('#customerLastName').val(),
+                mobileNumber: $('#customerMobileNumber').val(),
+                city: $('#customerCity').val(),
+                long: $('#customerLong').val(),
+                lat: $('#customerLat').val(),
+                isActive: $('#customerIsActive').is(':checked'),
+                userId: $('#userId').val(),
+                createdBy: $('#createdBy').val()
+            };
+
+            if (customerId) {
+                formData.id = parseInt(customerId);
+            }
+
+            var url = customerId ? '/Customers/Edit/' + customerId : '/Customers/Create';
+            var method = customerId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function (xhr) {
+                    alert("Error: " + xhr.responseText);
+                    console.error("AJAX Error Response:", xhr);
+                }
+            });
+        });
+
+    </script>
+}
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDxyU_TgdFriQCQNKZBRi8nyPO95J4cqIE&callback=loadMapScript" async defer></script>

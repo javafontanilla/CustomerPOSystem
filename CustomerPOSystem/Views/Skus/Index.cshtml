@@ -1,0 +1,199 @@
+﻿@model IEnumerable<CustomerPOSystem.Models.Sku>
+
+@{
+    ViewData["Title"] = "SKU List";
+}
+
+<h1>SKU List</h1>
+
+<p>
+    <a href="#" data-bs-toggle="modal" data-bs-target="#skuModal" onclick="clearModal()">Create New SKU</a>
+</p>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Code</th>
+            <th>Unit Price</th>
+            <th>Is Active</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var sku in Model)
+        {
+            <tr>
+                <td>@sku.Name</td>
+                <td>@sku.Code</td>
+                <td>@sku.UnitPrice</td>
+                <td>
+                    <input type="checkbox" class="form-check-input" disabled @(sku.IsActive ? "checked" : "") />
+                </td>
+                <td>
+                    @if (!string.IsNullOrEmpty(sku.ImagePath))
+                    {
+                        <img src="@Url.Content(sku.ImagePath)" alt="SKU Image" width="50" height="50" />
+                    }
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-warning edit-btn"
+                            data-id="@sku.Id"
+                            data-name="@sku.Name"
+                            data-code="@sku.Code"
+                            data-unitprice="@sku.UnitPrice"
+                            data-isactive="@sku.IsActive"
+                            data-image="@sku.ImagePath"
+                            data-bs-toggle="modal"
+                            data-bs-target="#skuModal">
+                        Edit
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Modal for Create/Edit SKU -->
+<div class="modal fade" id="skuModal" tabindex="-1" aria-labelledby="skuModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form id="skuForm" enctype="multipart/form-data">
+            <input type="hidden" name="Id" id="skuId" />
+
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="skuModalTitle">Add SKU</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Left Column: Fields -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="skuName" class="form-label">Name</label>
+                                <input type="text" name="Name" id="skuName" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="skuCode" class="form-label">Code</label>
+                                <input type="text" name="Code" id="skuCode" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="skuUnitPrice" class="form-label">Unit Price</label>
+                                <input type="number" name="UnitPrice" id="skuUnitPrice" class="form-control" step="0.01" required />
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" name="IsActive" id="skuIsActive" class="form-check-input" checked />
+                                <label class="form-check-label" for="skuIsActive">Is Active</label>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Image Upload & Preview -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="skuImage" class="form-label">Image</label>
+                                <input type="file" name="skuImage" id="skuImage" class="form-control" accept="image/*" />
+                            </div>
+                            <div>
+                                <img id="imagePreview" src="#" alt="Image Preview"
+                                     style="max-width: 100%; height: auto; display: none; border: 1px solid #ddd; padding: 5px;" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Save</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        
+        function clearModal() {
+            $('#skuForm')[0].reset();
+            $('#skuId').val('');
+            $('#skuModalTitle').text('Add SKU');
+            $('#submitBtn').text('Save');
+        }
+
+       
+        $('.edit-btn').click(function () {
+            $('#skuModalTitle').text('Edit SKU');
+            $('#submitBtn').text('Update');
+
+            
+            $('#skuId').val($(this).data('id'));
+            $('#skuName').val($(this).data('name'));
+            $('#skuCode').val($(this).data('code'));
+            $('#skuUnitPrice').val($(this).data('unitprice'));
+
+           
+            var isActive = $(this).data('isactive') === 'True' ? true : false;
+            $('#skuIsActive').prop('checked', isActive);
+
+             var imagePath = $(this).data('image');
+             if (imagePath) {
+                 $('#imagePreview').attr('src', imagePath).show(); 
+             } else {
+                 $('#imagePreview').hide(); 
+             }
+        });
+        $('#skuImage').change(function () {
+               const reader = new FileReader();
+               reader.onload = function (e) {
+                   $('#imagePreview').attr('src', e.target.result).show();
+               };
+               reader.readAsDataURL(this.files[0]);
+           });
+          $('#skuForm').submit(function (e) {
+            e.preventDefault();
+
+            var skuId = $('#skuId').val();
+            var formData = new FormData();
+
+            formData.append('Name', $('#skuName').val());
+            formData.append('Code', $('#skuCode').val());
+            formData.append('UnitPrice', parseFloat($('#skuUnitPrice').val()));
+            formData.append('IsActive', $('#skuIsActive').is(':checked'));
+            formData.append('UserId', $('#userId').val());
+            formData.append('CreatedBy', $('#createdBy').val());
+
+            if (skuId) {
+                formData.append('Id', parseInt(skuId));
+            }
+
+            var imageFile = $('#skuImage')[0].files[0];
+            if (imageFile) {
+                formData.append('Image', imageFile);
+            }
+
+            var url = skuId ? '/Skus/Edit/' + skuId : '/Skus/Create';
+            var method = skuId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                data: formData,
+                contentType: false, 
+                processData: false, 
+                success: function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function (xhr) {
+                    alert("Error: " + xhr.responseText);
+                    console.error("AJAX Error Response:", xhr);
+                }
+            });
+        });
+
+    </script>
+}

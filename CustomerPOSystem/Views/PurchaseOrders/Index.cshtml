@@ -1,0 +1,548 @@
+﻿@model IEnumerable<CustomerPOSystem.Models.PurchaseOrderViewModel>
+
+@{
+    ViewData["Title"] = "Purchase Order List";
+}
+
+<h2>Purchase Order List</h2>
+<p>
+    <a href="#" data-bs-toggle="modal" data-bs-target="#purchaseOrderModal" onclick="clearModal()">Create New Purchase Order</a>
+</p>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Customer</th>
+            <th>Delivery Date</th>
+            <th>Status</th>
+            <th>Amount Due</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var purchaseOrder in Model)
+        {
+            <tr>
+                <td>@purchaseOrder.CustomerName</td>
+                <td>@purchaseOrder.DateOfDelivery.ToString("MM/dd/yyyy")</td>
+                <td>@purchaseOrder.Status</td>
+                <td>@purchaseOrder.AmountDue</td>
+                <td>
+                    <button class="btn btn-sm btn-warning edit-btn"
+                            data-customerid="@purchaseOrder.CustomerId"
+                            data-customername="@purchaseOrder.CustomerName"
+                            data-id="@purchaseOrder.Id"
+                            data-deliverydate="@purchaseOrder.DateOfDelivery.ToString("yyyy-MM-dd")"
+                            data-status="@purchaseOrder.Status"
+                            data-amountdue="@purchaseOrder.AmountDue"
+                            data-bs-toggle="modal"
+                            data-bs-target="#purchaseOrderModal">
+                        Edit
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+<!-- Modal for Create/Edit Purchase Order -->
+<div class="modal fade" id="purchaseOrderModal" tabindex="-1" aria-labelledby="purchaseOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <form id="purchaseOrderForm">
+            <input type="hidden" name="Id" id="purchaseOrderId" />
+
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Add Purchase Order</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label>Customer</label>
+                            <div class="form-group">
+                                <input type="text" id="customerSearch" class="form-control" placeholder="Type to search..." autocomplete="off">
+                                <div id="customerSearching" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
+                            </div>
+                            <!-- Hidden field to store selected CustomerId -->
+                            <input type="hidden" id="purchaseOrderCustomerId" name="CustomerId" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label>Delivery Date</label>
+                            <input type="date" name="DateOfDelivery" id="purchaseOrderDateOfDelivery" class="form-control" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label>Status</label>
+                            <select name="Status" id="purchaseOrderStatus" class="form-control" required>
+                                <option value="New">New</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="button" class="btn btn-success" id="openAddItemModal">Add Item</button>
+                    </div>
+                    <table class="table table-bordered mt-3" id="itemTable">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Image</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                           
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2" class="text-right"><strong>Total Amount:</strong></td>
+                                <td colspan="1"><strong id="purchaseOrderTotalAmountDue">0.00</strong></td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Save</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemModalLabel">Add Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Row for the two-column layout -->
+                <div class="row">
+                    <!-- Left Column: Form Fields -->
+                    <div class="col-md-6">
+                        <!-- SKU Search -->
+                        <div class="mb-3">
+                            <label>SKU</label>
+                            <input type="text" id="skuSearch" class="form-control" placeholder="Type to search..." autocomplete="off">
+                            <div id="skuSearching" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
+                        </div>
+
+                        <!-- Hidden field to store selected SKUId -->
+                        <input type="hidden" id="purchaseOrderSKUId" name="SKUId" />
+
+                        <!-- Quantity -->
+                        <div class="mb-3">
+                            <label>Quantity</label>
+                            <input type="number" class="form-control" id="skuQuantity" name="Quantity" value="1" min="1" />
+                        </div>
+
+                        <!-- SubTotal -->
+                        <div class="mb-3">
+                            <label>SubTotal</label>
+                            <input type="text" class="form-control" id="skuSubTotal" disabled />
+                        </div>
+                    </div>
+
+                    <!-- Right Column: SKU Image -->
+                    <div class="col-md-6">
+                        <div class="text-center">
+                            <img id="skuImagePreview" src="#" alt="Image Preview" style="max-width: 100%; height: auto; display: none; border: 1px solid #ddd; padding: 5px;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveItemBtn" class="btn btn-primary">Save Item</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+          function clearModal() {
+              $('#customerSearching').hide();
+              $('#purchaseOrderForm')[0].reset();
+              $('#purchaseOrderId').val('');
+              $('#modalTitle').text('Add Purchase Order');
+              $('#submitBtn').text('Save');
+              $('#purchaseOrderTotalAmountDue').text('0.00');
+               $('#itemTable tbody').text('');
+          }
+
+             let selectedUnitPrice = 0;
+         let selectedSkuId = null;
+
+          document.getElementById('openAddItemModal').addEventListener('click', function () {
+              var addItemModal = new bootstrap.Modal(document.getElementById('addItemModal'), {
+                  backdrop: 'static',
+                  keyboard: false
+              });
+              addItemModal.show();
+             selectedUnitPrice = 0;
+             resetSkuInputs();
+          });
+
+         const dateInput = $('#purchaseOrderDateOfDelivery');
+
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+
+          const yyyy = tomorrow.getFullYear();
+          const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+          const dd = String(tomorrow.getDate()).padStart(2, '0');
+          const formatted = `${yyyy}-${mm}-${dd}`;
+
+          dateInput.val(formatted).attr('min', formatted);
+          dateInput.on('input', function () {
+              const selected = new Date(this.value);
+              if (selected < tomorrow) {
+                  $(this).val(formatted);
+              }
+          });
+
+          let typingTimer;
+         const typingDelay = 300;
+
+         $('#customerSearch').on('input', function () {
+             debugger;
+             clearTimeout(typingTimer);
+             const query = $(this).val();
+
+             if (query.length >= 2) {
+                 typingTimer = setTimeout(function () {
+                     $.ajax({
+                         url: '/PurchaseOrders/GetCustomers',
+                         data: { searchTerm: query },
+                         success: function (data) {
+                             const suggestions = data.customers.map(function (customer) {
+                                  return `<a href="#" class="list-group-item list-group-item-action" data-id="${customer.customerId}">${customer.customerName}</a>`;
+                             }).join('');
+                             $('#customerSearching').html(suggestions).show();
+                         }
+                     });
+                 }, typingDelay);
+             } else {
+                 $('#customerSearching').hide();
+             }
+         });
+
+          $('#customerSearching').on('click', '.list-group-item', function (e) {
+              e.preventDefault();
+              const selectedId = $(this).data('id');
+              const selectedText = $(this).text();
+
+              $('#purchaseOrderCustomerId').val(selectedId); 
+              $('#customerSearch').val(selectedText);        
+              $('#customerSearching').hide();                
+          });
+
+         $('#skuSearching').on('click', '.list-group-item', function (e) {
+             debugger;
+             e.preventDefault();
+
+             const selectedId = $(this).data('id'); 
+             const selectedText = $(this).text(); 
+             const selectedImagePath = $(this).data('image'); 
+
+             $('#purchaseOrderSKUId').val(selectedId);
+
+             $('#skuSearch').val(selectedText);
+
+             if (selectedImagePath) {
+                 $('#skuImagePreview').attr('src', selectedImagePath).show();
+             } else {
+                 $('#skuImagePreview').hide(); 
+             }
+             $('#skuSearching').hide();
+         });
+          $('#skuSearch').on('input', function () {
+             const query = $(this).val().trim();
+
+             if (query.length >= 2) {
+                 $.ajax({
+                     url: '/Skus/GetSkus',
+                     data: { searchTerm: query },
+                     success: function (data) {
+                         const suggestions = data.results.map(function (sku) {
+                             return `<a href="#" class="list-group-item list-group-item-action"
+                                  data-id="${sku.id}" data-image="${sku.imagePath}" data-price="${sku.price}">
+                                 ${sku.text}</a>`;
+                         }).join('');
+                         $('#skuSearching').html(suggestions).show();
+                     }
+                 });
+             } else {
+                 $('#skuSearching').hide(); 
+             }
+         });
+
+         $('#skuSearching').on('click', '.list-group-item', function (e) {
+             e.preventDefault();
+
+             const selectedId = $(this).data('id');
+             const selectedText = $(this).text().trim(); 
+             const selectedPrice = parseFloat($(this).data('price')) || 0;
+
+             selectedSkuId = selectedId;
+             selectedUnitPrice = selectedPrice;
+
+             $('#purchaseOrderSkuId').val(selectedId);    
+             $('#skuSearch').val(selectedText);           
+             $('#skuPrice').val(selectedPrice);           
+             $('#skuQuantity').val(1);                    
+             $('#skuSearching').hide();
+
+             calculateSubTotal();
+         });
+
+         $('#skuQuantity').on('input', calculateSubTotal);
+
+         function calculateSubTotal() {
+             const qty = parseInt($('#skuQuantity').val()) || 1;
+             const subTotal = qty * selectedUnitPrice;
+             $('#skuSubTotal').val(subTotal.toFixed(2));
+         }
+
+         let itemIndex = 0;
+         let editingRow = null;
+
+        $('#saveItemBtn').on('click', function () {
+            debugger;
+             const skuName = $('#skuSearch').val().trim();
+             const quantity = $('#skuQuantity').val();
+             const subTotal = $('#skuSubTotal').val();
+             const imagePath = $('#skuImagePreview').attr('src');
+             if (!editingRow) {
+                 let isDuplicate = false;
+                 $('#itemTable tbody tr').each(function () {
+                     const existingId = $(this).find('.edit-item').data('id');
+                     if (existingId == selectedSkuId) {
+                         isDuplicate = true;
+                         return false; 
+                     }
+                 });
+
+                 if (isDuplicate) {
+                     alert('This item is already in the list.');
+                     return;
+                 }
+             }
+             debugger;
+             if (editingRow) {
+                   editingRow.find('td').eq(0).text(skuName);
+                   editingRow.find('td').eq(1).text(quantity);
+                   editingRow.find('td').eq(2).text(subTotal);
+        editingRow.find('td').eq(3).html(`
+            <div class="d-flex align-items-center">
+                <img src="${imagePath}" alt="SKU Image" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+            </div>
+        `);
+
+                   const $editBtn = editingRow.find('.edit-item');
+                        $editBtn.attr('data-id', selectedSkuId);
+                   $editBtn.attr('data-quantity', quantity);
+                   $editBtn.attr('data-price', subTotal);
+                    $editBtn.attr('data-image', imagePath);
+             } else {
+          const newRow = `
+        <tr>
+            <td>
+                <span>${skuName}</span>
+            </td>
+            <td>${quantity}</td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <img src="${imagePath}" alt="SKU Image" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                    <span>${skuName}</span>
+                </div>
+            </td>
+            <td class="item-subtotal">${subTotal}</td>
+            <td>
+                <button type="button" class="btn btn-sm btn-primary edit-item"
+                        data-image="${imagePath}"
+                        data-id="${selectedSkuId}"
+                        data-quantity="${quantity}"
+                        data-price="${subTotal}">
+                    Edit
+                </button>
+            </td>
+        </tr>`;
+
+        $('#itemTable tbody').append(newRow);
+             }
+
+             CalculateTotalAmountDue();
+             $('#addItemModal').modal('hide');
+             editingRow = null;
+             resetSkuInputs();
+         });
+
+        $('#itemTable').on('click', '.edit-item', function () {
+            const row = $(this).closest('tr');
+            editingRow = row;
+
+            const skuName = row.find('td').eq(0).text().trim();
+            const quantity = row.find('td').eq(1).text();
+            const price = row.find('td').eq(2).text();
+            const skuId = $(this).data('id');
+            const imagePath = $(this).data('image');
+
+            $('#skuSearch').val(skuName);
+            $('#skuQuantity').val(quantity);
+            $('#skuSubTotal').val(price);
+
+            if (imagePath) {
+                $('#skuImagePreview').attr('src', imagePath).show();
+            } else {
+                $('#skuImagePreview').hide();
+            }
+
+            selectedSkuId = skuId;
+            selectedUnitPrice = parseFloat(price) / parseInt(quantity) || 0;
+
+            $('#addItemModal').modal('show');
+        });
+
+
+         $('#addNewItemBtn').on('click', function () {
+             editingRow = null;
+             resetSkuInputs();
+             $('#addItemModal').modal('show');
+         });
+
+         function resetSkuInputs() {
+             selectedSkuId = null;
+             selectedUnitPrice = 0;
+             $('#skuSearch').val('');
+             $('#skuQuantity').val('');
+             $('#skuSubTotal').val('');
+             $('#skuPrice').val('');
+               $('#skuImagePreview').hide();
+         }
+
+         function CalculateTotalAmountDue() {
+             let total = 0;
+             $('#itemTable .item-subtotal').each(function () {
+                 total += parseFloat($(this).text()) || 0;
+             });
+             $('#purchaseOrderTotalAmountDue').text(total.toFixed(2));
+         }
+
+         $('.edit-btn').click(function () {
+             $('#modalTitle').text('Edit Purchase Order');
+             $('#submitBtn').text('Update');
+
+             const purchaseOrderId = $(this).data('id');
+
+             $('#purchaseOrderCustomerId').val($(this).data('customerid'));
+             $('#customerSearch').val($(this).data('customername'));
+             $('#purchaseOrderId').val(purchaseOrderId);
+             $('#purchaseOrderDateOfDelivery').val($(this).data('deliverydate'));
+             $('#purchaseOrderStatus').val($(this).data('status'));
+             $('#purchaseOrderTotalAmountDue').val($(this).data('amountdue'));
+
+             $('#itemTable tbody').empty();
+
+             $.ajax({
+                 url: '/PurchaseOrders/GetItemsByPurchaseOrderId?id=' + purchaseOrderId,
+                 method: 'GET',
+                 contentType: 'application/json',
+                 success: function (items) {
+                     items.forEach(item => {
+                         const rowHtml = `
+                              <tr>
+                                  <td>
+                                          <span>${item.skuDisplay}</span>
+                                  </td>
+                                  <td>${item.quantity}</td>
+                                  <td class="item-subtotal">${item.price}</td>
+                                   <td>
+                                      <div class="d-flex align-items-center">
+                                          <img src="${item.imagePath}" alt="SKU Image" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                      </div>
+                                  </td>
+                                  <td>
+                                      <button type="button" class="btn btn-sm btn-primary edit-item"
+                                          data-id="${item.skuid}"
+                                          data-quantity="${item.quantity}"
+                                          data-price="${item.price}"
+                                          data-image="${item.imagePath}">
+                                          Edit
+                                      </button>
+                                  </td>
+                              </tr>`;
+                         $('#itemTable tbody').append(rowHtml);
+                     });
+                     CalculateTotalAmountDue()
+                 },
+                 error: function (xhr) {
+                     alert("Failed to load purchase items.");
+                     console.error("Error:", xhr.responseText);
+                 }
+             });
+         });
+
+
+         $('#purchaseOrderForm').submit(function (e) {
+             e.preventDefault(); 
+
+             var purchaseOrderId = $('#purchaseOrderId').val();
+             var formData = {
+                 customerId: $('#purchaseOrderCustomerId').val(),
+                 dateOfDelivery: $('#purchaseOrderDateOfDelivery').val(),
+                 status: $('#purchaseOrderStatus').val(),
+                 amountDue: $('#purchaseOrderTotalAmountDue').text(),
+                 userId: $('#userId').val(),
+                 createdBy: $('#createdBy').val(),
+                 items: []
+             };
+
+             if (purchaseOrderId) {
+                 formData.id = parseInt(purchaseOrderId);
+             }
+
+         $('#itemTable tbody tr').each(function () {
+             debugger;
+             var item = {
+              skuId: $(this).find('.edit-item').attr('data-id'),
+                 quantity: parseInt($(this).find('.edit-item').attr('data-quantity')),
+                 price: parseFloat($(this).find('.edit-item').attr('data-price')),
+                 imagePath: $(this).find('.edit-item').attr('data-image'),
+                 userId: $('#userId').val(),
+                 createdBy: $('#createdBy').val(),
+             };
+               formData.items.push(item);
+         });
+             var url = purchaseOrderId ? '/PurchaseOrders/Edit/' + purchaseOrderId : '/PurchaseOrders/Create';
+             var method = purchaseOrderId ? 'PUT' : 'POST';
+             debugger;
+             $.ajax({
+                 url: url,
+                 method: method,
+                 contentType: 'application/json',
+                 data: JSON.stringify(formData),
+                 success: function () {
+                     location.reload();
+                 },
+                 error: function (xhr) {
+                     alert("Error: " + xhr.responseText);
+                     console.error("AJAX Error Response:", xhr);
+                 }
+             });
+         });
+
+    </script>
+}
