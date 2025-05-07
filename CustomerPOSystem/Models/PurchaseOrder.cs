@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CustomerPOSystem.Helper;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -13,6 +14,8 @@ namespace CustomerPOSystem.Models
 
         public Customer Customer { get; set; } = null!;
 
+        [Required(ErrorMessage = "Date of Delivery is required.")]
+        [TomorrowOrLater]
         public DateOnly DateOfDelivery { get; set; }
 
         [Required]
