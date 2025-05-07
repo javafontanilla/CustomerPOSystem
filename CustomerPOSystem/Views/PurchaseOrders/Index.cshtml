@@ -26,7 +26,7 @@
                 <td>@purchaseOrder.CustomerName</td>
                 <td>@purchaseOrder.DateOfDelivery.ToString("MM/dd/yyyy")</td>
                 <td>@purchaseOrder.Status</td>
-                <td>@purchaseOrder.AmountDue</td>
+                <td>@purchaseOrder.AmountDue.ToString("N2")</td>
                 <td>
                     <button class="btn btn-sm btn-warning edit-btn"
                             data-customerid="@purchaseOrder.CustomerId"
@@ -311,6 +311,7 @@
          $('#skuQuantity').on('input', calculateSubTotal);
 
          function calculateSubTotal() {
+             debugger;
              const qty = parseInt($('#skuQuantity').val()) || 1;
              const subTotal = qty * selectedUnitPrice;
              $('#skuSubTotal').val(subTotal.toFixed(2));
@@ -344,7 +345,14 @@
              if (editingRow) {
                    editingRow.find('td').eq(0).text(skuName);
                    editingRow.find('td').eq(1).text(quantity);
-                   editingRow.find('td').eq(2).text(subTotal);
+
+                           const rawSubTotal = $('#skuSubTotal').val();
+        const numericSubTotal = parseFloat(rawSubTotal.toString().replace(/,/g, '')) || 0;
+        const formattedSubTotal = numericSubTotal.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+                   editingRow.find('td').eq(2).text(formattedSubTotal);
         editingRow.find('td').eq(3).html(`
             <div class="d-flex align-items-center">
                 <img src="${imagePath}" alt="SKU Image" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
@@ -390,6 +398,7 @@
          });
 
         $('#itemTable').on('click', '.edit-item', function () {
+            debugger;
             const row = $(this).closest('tr');
             editingRow = row;
 
@@ -410,8 +419,9 @@
             }
 
             selectedSkuId = skuId;
-            selectedUnitPrice = parseFloat(price) / parseInt(quantity) || 0;
-
+             const numericPrice = parseFloat(price.toString().replace(/,/g, '')) || 0;
+            const numericQuantity = parseInt(quantity) || 1; // Avoid divide by zero
+             selectedUnitPrice = numericPrice / numericQuantity;
             $('#addItemModal').modal('show');
         });
 
@@ -432,13 +442,20 @@
                $('#skuImagePreview').hide();
          }
 
-         function CalculateTotalAmountDue() {
-             let total = 0;
-             $('#itemTable .item-subtotal').each(function () {
-                 total += parseFloat($(this).text()) || 0;
-             });
-             $('#purchaseOrderTotalAmountDue').text(total.toFixed(2));
-         }
+             function CalculateTotalAmountDue() {
+            let total = 0;
+            $('#itemTable .item-subtotal').each(function () {
+                const value = $(this).text().replace(/,/g, ''); 
+                total += parseFloat(value) || 0;
+            });
+
+            const formattedTotal = total.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            $('#purchaseOrderTotalAmountDue').text(formattedTotal);
+        }
 
          $('.edit-btn').click(function () {
              $('#modalTitle').text('Edit Purchase Order');
@@ -461,13 +478,18 @@
                  contentType: 'application/json',
                  success: function (items) {
                      items.forEach(item => {
+                         const formattedPrice = parseFloat(item.price).toLocaleString('en-US', {
+                             minimumFractionDigits: 2,
+                             maximumFractionDigits: 2
+                         });
+
                          const rowHtml = `
                               <tr>
                                   <td>
                                           <span>${item.skuDisplay}</span>
                                   </td>
                                   <td>${item.quantity}</td>
-                                  <td class="item-subtotal">${item.price}</td>
+                                  <td class="item-subtotal">${formattedPrice}</td>
                                    <td>
                                       <div class="d-flex align-items-center">
                                           <img src="${item.imagePath}" alt="SKU Image" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
@@ -503,7 +525,7 @@
                  customerId: $('#purchaseOrderCustomerId').val(),
                  dateOfDelivery: $('#purchaseOrderDateOfDelivery').val(),
                  status: $('#purchaseOrderStatus').val(),
-                 amountDue: $('#purchaseOrderTotalAmountDue').text(),
+                 amountDue: parseFloat($('#purchaseOrderTotalAmountDue').text().replace(/,/g, '')) || 0,
                  userId: $('#userId').val(),
                  createdBy: $('#createdBy').val(),
                  items: []
